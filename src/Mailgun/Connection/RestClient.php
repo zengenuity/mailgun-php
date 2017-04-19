@@ -106,6 +106,7 @@ class RestClient
 
         $request = MessageFactoryDiscovery::find()->createRequest($method, $this->getApiUrl($uri), $headers, $body);
         $response = $this->getHttpClient()->sendRequest($request);
+        $this->closeFiles($files);
 
         return $this->responseHandler($response);
     }
@@ -375,5 +376,17 @@ class RestClient
         $this->sslEnabled = $sslEnabled;
 
         return $this;
+    }
+
+    /**
+     * Closes an array of file specifications where the resource is in the key "contents"
+     *
+     * @param array $files
+     */
+    private function closeFiles($files = []) {
+      array_map(
+        function($file) { fclose($file['contents']); },
+        $files
+      );
     }
 }

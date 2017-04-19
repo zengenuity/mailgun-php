@@ -32,6 +32,7 @@ class Message extends HttpApi
         Assert::notEmpty($params);
 
         $postDataMultipart = [];
+        $files = [];
         $fields = ['attachment', 'inline'];
         foreach ($fields as $fieldName) {
             if (!isset($params[$fieldName])) {
@@ -40,7 +41,9 @@ class Message extends HttpApi
 
             Assert::isArray($params[$fieldName]);
             foreach ($params[$fieldName] as $file) {
-                $postDataMultipart[] = $this->prepareFile($fieldName, $file);
+                $file = $this->prepareFile($fieldName, $file);
+                $postDataMultipart[] = $file;
+                $files[] = $file;
             }
 
             unset($params[$fieldName]);
@@ -48,6 +51,7 @@ class Message extends HttpApi
 
         $postDataMultipart = array_merge($this->prepareMultipartParameters($params), $postDataMultipart);
         $response = $this->httpPostRaw(sprintf('/v3/%s/messages', $domain), $postDataMultipart);
+        $this->closeFiles($files);
 
         return $this->hydrateResponse($response, SendResponse::class);
     }
@@ -166,5 +170,17 @@ class Message extends HttpApi
         }
 
         return $postDataMultipart;
+    }
+
+    /**
+     * Closes an array of file specifications where the resource is in the key "content"
+     *
+     * @param array $files
+     */
+    private function closeFiles($files = []) {
+      array_map(
+        function($file) { fclose($file['content']); },
+        $files
+      );
     }
 }
